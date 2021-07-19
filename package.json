@@ -1,6 +1,6 @@
 {
   "name": "shopify-app-node",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Shopify's node app for CLI tool",
   "scripts": {
     "test": "jest",
