@@ -1,6 +1,8 @@
 import ApolloClient from "apollo-boost";
+import { GetServerSideProps, GetStaticProps, NextPage } from "next";
+import { FC } from "react";
 import { ApolloProvider } from "react-apollo";
-import App from "next/app";
+import App, { AppContext, AppProps } from "next/app";
 import { AppProvider } from "@shopify/polaris";
 import { Provider, useAppBridge } from "@shopify/app-bridge-react";
 import { authenticatedFetch } from "@shopify/app-bridge-utils";
@@ -8,18 +10,16 @@ import { Redirect } from "@shopify/app-bridge/actions";
 import "@shopify/polaris/dist/styles.css";
 import translations from "@shopify/polaris/locales/en.json";
 
+const { API_KEY } = process.env;
+
 function userLoggedInFetch(app) {
   const fetchFunction = authenticatedFetch(app);
 
   return async (uri, options) => {
     const response = await fetchFunction(uri, options);
 
-    if (
-      response.headers.get("X-Shopify-API-Request-Failure-Reauthorize") === "1"
-    ) {
-      const authUrlHeader = response.headers.get(
-        "X-Shopify-API-Request-Failure-Reauthorize-Url"
-      );
+    if (response.headers.get("X-Shopify-API-Request-Failure-Reauthorize") === "1") {
+      const authUrlHeader = response.headers.get("X-Shopify-API-Request-Failure-Reauthorize-Url");
 
       const redirect = Redirect.create(app);
       redirect.dispatch(Redirect.Action.APP, authUrlHeader || `/auth`);
@@ -49,26 +49,27 @@ function MyProvider(props) {
   );
 }
 
-class MyApp extends App {
-  render() {
-    const { Component, pageProps, host } = this.props;
-    return (
-      <AppProvider i18n={translations}>
-        <Provider
-          config={{
-            apiKey: API_KEY,
-            host: host,
-            forceRedirect: true,
-          }}
-        >
-          <MyProvider Component={Component} {...pageProps} />
-        </Provider>
-      </AppProvider>
-    );
-  }
-}
+type Props = AppProps & {
+  host: string;
+};
 
-MyApp.getInitialProps = async ({ ctx }) => {
+export const MyApp: NextPage<Props> = ({ pageProps, Component, host }) => {
+  return (
+    <AppProvider i18n={translations}>
+      <Provider
+        config={{
+          apiKey: API_KEY,
+          host: host,
+          forceRedirect: true,
+        }}
+      >
+        <MyProvider Component={Component} {...pageProps} />
+      </Provider>
+    </AppProvider>
+  );
+};
+
+export const getInitialProps = async ({ ctx }: AppContext) => {
   return {
     host: ctx.query.host,
   };
